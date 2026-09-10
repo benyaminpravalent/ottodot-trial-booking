@@ -1,18 +1,20 @@
 # Decision log
 
-Running, dated log kept while building. Newest entries at the bottom. Each entry records the alternatives
-that were on the table, what was chosen and why, and how it was verified. Bugs and dead ends are logged too.
+Running, dated log kept while building (AI-assisted; who found what is recorded in `AI_USAGE.md`). Newest entries at
+the bottom. Each entry records the alternatives that were on the table, what was chosen and why, and how it was verified.
+Bugs and dead ends are logged too.
 
 ---
 
 ### D-01 — Go instead of Node/Next.js (2026-09-10)
-Context: the original build brief (`OTTODOT_BUILD_PROMPT.md`) fixed Next.js + Drizzle. Max changed his mind
-and wanted Go, *if* the assignment allows it.
+Context: the original build brief fixed Next.js + Drizzle. Before starting, the
+stack was reconsidered in favour of Go, *if* the assignment allows it.
 Options: (a) Next.js + TypeScript as in the brief, (b) Go backend + Next.js frontend, (c) Go only, server-rendered HTML.
 Chose: (c). The assignment PDF has no language requirement ("A CLI, script, API endpoint, server action, or
 minimal app is fine") and explicitly de-prioritises the frontend. One Go binary serving JSON + `html/template`
 pages keeps the moving parts to a minimum and puts all the evaluated judgement (schema, locking, tests) in one place.
-Rejected because: (a) contradicts Max's decision; (b) doubles the runtimes and setup steps for a UI nobody is grading.
+Rejected because: (a) and (b) both put a JavaScript toolchain and build step in front of a UI nobody is grading; (b) also
+doubles the runtimes and setup steps.
 Evidence / verification: PDF text extracted with `pdftotext` and read in full before deciding.
 
 ### D-02 — Stack mapping from the brief to Go (2026-09-10)
@@ -27,9 +29,9 @@ Context: the brief's fixed decisions are Node-specific; each needed a Go equival
 | `npm run <script>` | `Makefile` targets + the raw `go run ./cmd/...` commands listed in README (Windows has no `make`) | |
 Chose: the table above. Rejected: sqlc / GORM / ent — more generated code than the slice needs.
 
-### D-03 — Tests need a real Postgres but this machine has no Docker (2026-09-10)
-Context: the brief says tests run against real Postgres via docker compose. Docker is not installed on the
-build machine, and `psql` is not either.
+### D-03 — Tests need a real Postgres, also where Docker is unavailable (2026-09-10)
+Context: the brief says tests run against real Postgres via docker compose, but Docker cannot be assumed on every
+development machine.
 Options: (a) mock the DB in tests (violates the brief and the point of the exercise), (b) require Docker and
 ship untested code, (c) fall back to `embedded-postgres` (downloads a real PostgreSQL 16 binary, ~15s cold start)
 when `DATABASE_URL_TEST` is not set.
@@ -39,14 +41,14 @@ app itself can be run locally without Docker.
 Rejected because: (a) would make invariant tests meaningless; (b) means never seeing tests pass.
 Evidence / verification: probe program started embedded PostgreSQL 16.9 and ran `select version()` successfully.
 
-### D-04 — `-race` not available on this Windows box (2026-09-10)
-Context: `go test -race` needs cgo/gcc on Windows; no gcc installed.
+### D-04 — `-race` kept out of the default test target (2026-09-10)
+Context: `go test -race` needs cgo, which is not available everywhere (Windows without gcc).
 Chose: `make test` runs without `-race`; `make test-race` is provided for Linux/macOS/CI. Concurrency
 correctness is asserted by the DB-level tests (#10, #11, #16), not by the Go race detector, which would only
 catch in-process data races (there is no shared mutable state in the service anyway).
 
 ### D-05 — Where the card-shape validation lives (2026-09-10)
-Context: the brief says "zod at every API boundary". Two boundaries exist here: the JSON API and the HTML form.
+Context: the brief requires validation at every API boundary. Two boundaries exist here: the JSON API and the HTML form.
 Options: (a) validate in the JSON handler only, HTML form passes raw values through; (b) duplicate the rules in both;
 (c) one `payments.Validate(card, now)` used by both.
 Chose: (c). The HTML form is a boundary too; duplicating rules is how they drift. First draft had the rules inline in
@@ -74,7 +76,7 @@ different rows from both flipping to confirmed. The booking row is *also* locked
 different reason (D-09).
 
 ### D-09 — Guard against concurrent double-pay of the same booking (2026-09-10)
-Context: not in the brief. While writing `PayForBooking` I noticed the pre-charge "is it pending?" check is outside the
+Context: not in the brief. While writing `PayForBooking` it became clear that the pre-charge "is it pending?" check is outside the
 transaction, so two simultaneous `/pay` calls for the *same* booking (double click, client retry) would both charge.
 Options: (a) ignore (idempotency keys are listed as "next"), (b) re-read the booking's status under the class lock and,
 if it is no longer pending, refund the duplicate charge and record it as `refunded`.
@@ -99,7 +101,7 @@ pending) where nothing was recorded. Mixing outcome bodies into 4xx would force 
 
 ### D-12 — Test fixture bug: Aarav is already confirmed in C1 (2026-09-10)
 Context: first run of the suite. Tests #04, #12 and #16 failed with `duplicate_confirmed` on `CreateBooking`.
-Cause: I used Priya→Aarav→C1 as the "happy path" fixture, but the seed confirms Aarav in C1. The service was right;
+Cause: the tests used Priya→Aarav→C1 as the "happy path" fixture, but the seed confirms Aarav in C1. The service was right;
 the test was wrong. Fixed by using Diya for C1 in those tests. Recorded because it is exactly the kind of "the test
 failed for a boring reason" that should not be confused with a product bug.
 
@@ -116,7 +118,7 @@ not hope for it. Test #10 does this with the 300ms delay *and* asserts B finishe
 Context: the brief asks for two distinct students not already in C2. With the fixed seed, the only such students are
 Aarav and Diya — both Priya's. Adding a fourth parent would change the seed the brief fixes.
 Chose: keep the seed; User A = Priya→Aarav, User B = Priya→Diya. The race is between two *bookings* for one seat; whose
-account they sit under does not change the mechanism. Noted in the demo output and video guide.
+account they sit under does not change the mechanism. Noted in the demo output.
 
 ### D-15 — `TRUNCATE` per test, per-package database (2026-09-10)
 Context: `go test ./...` runs packages in parallel processes. Two packages truncating one database would corrupt each other.
@@ -126,8 +128,8 @@ Rejected: `-p 1` (slower, easy to forget), transaction-rollback isolation (would
 race tests depend on).
 
 ### D-16 — Manual click-through of the four seeded cases (2026-09-10)
-Done against the running server with `curl` (form POSTs + following redirects), not a browser; Max should repeat it
-once in a browser before recording. Observed:
+Done against the running server with `curl` (form POSTs + following redirects), not a browser; the video walkthrough
+repeats the same four cases in a browser. Observed:
 - **C1 happy path** (Priya → Diya → Volcanoes, card 4242…): `303 → /bookings/<id>/pay`, pay page shows "Amount due:
   SGD 20.00" and the "not reserved" copy; after pay `303 → /bookings/<id>` with status label **Confirmed**, one
   `succeeded` badge; roster page "2 / 4 confirmed" listing Aarav and Diya; roster JSON `confirmed_count: 2, seats_left: 2`.
@@ -143,8 +145,8 @@ once in a browser before recording. Observed:
 - Structured log lines confirmed, e.g. `{"level":"INFO","msg":"request","request_id":"…","method":"POST","path":"/api/bookings","status":409,"duration_ms":1.528}`.
 
 ### D-17 — Toolchain: go.mod says 1.25, staticcheck needed a rebuild (2026-09-10)
-Context: `go mod tidy` bumped `go.mod` to `go 1.25.0` because `embedded-postgres v1.34` requires it; the machine's
-default toolchain is 1.24.3 (GOTOOLCHAIN=auto fetched 1.25 transparently). The pre-installed `staticcheck` refused to
+Context: `go mod tidy` bumped `go.mod` to `go 1.25.0` because `embedded-postgres v1.34` requires it; with a default
+toolchain of 1.24.x, GOTOOLCHAIN=auto fetched 1.25 transparently. The pre-installed `staticcheck` refused to
 analyse a 1.25 module, and `staticcheck@latest` needs Go 1.26.
 Chose: keep `go 1.25.0` (current stable; reviewers on ≥1.21 get the toolchain auto-downloaded) and reinstall staticcheck
 with `GOTOOLCHAIN=auto go install honnef.co/go/tools/cmd/staticcheck@latest`. `make lint` treats a missing staticcheck
@@ -160,14 +162,55 @@ left over from D-05 — removed.
 - `go run ./cmd/demo-race` twice: identical result; second run printed the idempotent reset line.
 - `go run ./cmd/migrate` twice: second run "database is up to date".
 
-### D-19 — Suggested commit sequence (repo was not under git during the build)
-1. `chore: scaffold Go module, docker compose, env example, Makefile`
-2. `feat(db): schema + booking constraints migrations, pool, embedded SQL migration runner`
-3. `feat(payments): deterministic mock provider with test cards, delay knob, shared card validation`
-4. `feat(booking): service layer — create, pay (charge → FOR UPDATE → count → confirm/refund), roster, list`
-5. `feat(seed): fixed-UUID demo dataset covering the four assignment cases`
-6. `test(booking): 17 DB-backed cases incl. last-seat race, 10-payer stress, double-pay, 23505 fallback`
-7. `feat(api): JSON route handlers, request-id + structured logging, API tests`
-8. `feat(web): server-rendered pages — book, pay, status, admin classes, roster`
-9. `feat(cmd): demo-race, devdb (embedded Postgres fallback), migrate -reset`
-10. `docs: README, AI_USAGE draft, DECISIONS log, video walkthrough guide`
+### D-19 — Docker compose path verified end to end from a fresh clone (2026-09-10)
+Context: the docker compose path is the one the README tells reviewers to use, so it was run from a fresh clone following
+only the README. Environment: Docker 20.10.17, Compose v2.7.0, Go 1.25.0 darwin/arm64, gcc present.
+Observed, in order:
+- `cp .env.example .env && docker compose up -d --wait` → container healthy in 4.4s; `docker/init.sql` created
+  `ottodot_test`; server reports `PostgreSQL 16.15 on aarch64-unknown-linux-musl`.
+- `go run ./cmd/migrate` → applied `0001_schema`, `0002_booking_constraints`; second run → "database is up to date".
+- `go run ./cmd/seed` → 3 parents, 5 students, 4 classes, 6 bookings, 6 attempts; C1 1 / C2 3 / C3 1 (Diya) / C4 0 + 1 failed.
+- `make verify` → green. Suite against docker compose: booking 2.9s, httpapi 2.3s, payments 1.3s (vs 16s / 14s embedded).
+- `go run ./cmd/demo-race` twice → identical: B confirmed at +19ms, A `cancelled/class_full` + `refunded` at +359ms,
+  C2 4/4 `[Ethan, Mia, Noah, Diya]`; second run printed the idempotent reset line.
+- **`go test ./... -count=1 -race`** → green (booking 4.1s, httpapi 3.4s, payments 2.1s). `go test ./internal/booking -run TestLastSeatRace -count=5 -race` → ok.
+- `go run ./cmd/server` against the docker DB: `GET /` 200, roster JSON for C1 `confirmed_count: 1, seats_left: 3`,
+  `/api/trial-classes` (envelope `{"trial_classes":[…]}`), `/admin/classes` renders the Full badge; JSON request logs present.
+- The embedded fallback was also run once (`env -u DATABASE_URL_TEST go test ./internal/httpapi`): downloaded the
+  binaries and passed in 23s. Both database paths verified.
+Two things were *not* green on the way and are logged as D-20 and D-21.
+
+### D-20 — Stale `staticcheck` crashed and `make lint` reported it as "not installed" (2026-09-10)
+Context: a staticcheck 2024.1.1 binary was installed. Against the Go 1.25 module it died with
+`internal error in importing "internal/byteorder" (unsupported version: 2)` — exactly what D-17 predicted. The Makefile
+line `command -v staticcheck && staticcheck ./... || echo "staticcheck not installed; skipped"` treated that crash the
+same as a missing binary: `make verify` printed "skipped" and **exited 0**. A false green on the reviewer's entry point.
+Options: (a) leave it, document; (b) `if … then staticcheck || fail; else skip; fi`; (c) make staticcheck mandatory.
+Chose: (b). Missing binary → still a skip with a message (reviewers should not need to install it); installed-but-failing
+→ non-zero exit with a one-line reinstall hint. (c) rejected: `make verify` must work on a fresh clone with only Go + Docker.
+Also reinstalled with `GOTOOLCHAIN=auto go install honnef.co/go/tools/cmd/staticcheck@latest` → 2026.2.1 (Go 1.26.8
+auto-fetched). `staticcheck ./...` → 0 findings.
+Evidence: `make verify` from a clean shell now runs staticcheck silently (no "skipped" line) and exits 0.
+
+### D-21 — Tests do not read `.env`; `make` now exports it (2026-09-10)
+Context: `config.Load` (used by the binaries) calls `godotenv.Load()`, but `internal/testutil` reads
+`os.Getenv("DATABASE_URL_TEST")` directly — and `go test` runs each package with cwd = the package directory, so a
+repo-root `.env` would not be found anyway. Result: the README's `make verify`, with Docker running and `.env` in place,
+still started an embedded Postgres per package (`[testutil] DATABASE_URL_TEST not set …`, httpapi 23s) instead of using
+`ottodot_test`. Correctness is unaffected (real Postgres either way, D-03) — but the documented Docker path was not the
+path actually being exercised.
+Options: (a) teach `testutil` to walk up to the repo root and load `.env`; (b) `-include .env` + `export` in the
+Makefile; (c) documentation only.
+Chose: (b) + (c). The Makefile is the reviewer entry point and the fix is two lines with no test-code change. README now
+says a bare `go test ./...` needs `DATABASE_URL_TEST` exported (`set -a; source .env; set +a`) or falls back to embedded.
+(a) is a reasonable follow-up: it would also fix bare `go test`, at the cost of test infrastructure reading a dotfile.
+Evidence: `make verify` from a shell with no `DATABASE_URL*` set → no `[testutil]` fallback line, booking 4.0s,
+httpapi 1.2s; `make -n` shows the variables resolved from `.env`.
+
+### D-22 — Supabase run skipped; it is not a requirement (2026-09-10)
+Context: a README section inherited from the Next.js-era brief gave step-by-step instructions for running against Supabase.
+Checked the assignment PDF: Supabase appears once, in "Suggested Model" — "seed file, JSON, CSV, SQLite, Postgres,
+Supabase, or in-memory data". One option in a permissive list; plain PostgreSQL satisfies it.
+Chose: skip the run, reword the README section to "Other Postgres hosts" stating that only Docker and the embedded
+fallback were tested. Reason: a README paragraph with step-by-step Supabase instructions implies it was tried.
+`.env.example` keeps its commented Supabase line (harmless, and true).

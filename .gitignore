@@ -23,3 +23,6 @@ Thumbs.db
 # local run logs
 .server.log
 .devdb.log
+
+# private working files kept out of the public repo (assignment PDF, handoff, video script, coaching notes)
+/.local/

@@ -7,14 +7,14 @@ The smallest working slice of a trial-class booking system for Ottodot: a parent
 level — no duplicate confirmed bookings, never more than 4 confirmed per class, a failed payment never reaches the
 roster, and the last-seat race ends with exactly one confirmed booking. It is one Go binary talking to PostgreSQL 16.
 
-> 🎥 Walkthrough video: <LINK — Max to fill in>
+> 🎥 Walkthrough video: <LINK — to be added>
 
 ## How to run
 
 Prerequisites: **Go 1.25+** (any Go ≥ 1.21 will auto-download the right toolchain) and **Docker** (for Postgres).
 
 ```bash
-git clone <repo-url> ottodot && cd ottodot
+git clone https://github.com/benyaminpravalent/ottodot-trial-booking.git ottodot && cd ottodot
 cp .env.example .env
 docker compose up -d --wait        # PostgreSQL 16; creates databases `ottodot` and `ottodot_test`
 go run ./cmd/migrate               # applies internal/db/migrations/*.sql
@@ -36,11 +36,11 @@ The same roster as JSON: <http://localhost:3000/api/trial-classes/c0000000-0000-
 | `4000 0000 0000 9995` | fails: `insufficient_funds` |
 | anything else | fails: `invalid_card` |
 
-### Running against Supabase
+### Other Postgres hosts
 
-Paste the Supabase connection string (Project Settings → Database → URI, *session* mode) into `DATABASE_URL` in `.env`,
-then run the same `migrate`, `seed`, `server` commands. No code changes: the schema uses only core Postgres
-(`gen_random_uuid()`, enums, partial indexes, `FOR UPDATE`). `migrate -reset` drops only this app's tables, never the schema.
+`DATABASE_URL` is a plain Postgres connection string, so a hosted Postgres (Supabase, RDS, Neon) should work unchanged:
+the schema uses only core features (`gen_random_uuid()`, enums, partial indexes, `FOR UPDATE`). Only Docker and the
+embedded fallback were actually tested; the assignment lists Supabase as one option among several, not a requirement.
 
 ### No Docker?
 
@@ -51,13 +51,16 @@ then run the same `migrate`, `seed`, `server` commands. No code changes: the sch
 
 ```bash
 make verify          # gofmt + go vet + staticcheck (if installed) + go test ./... -count=1
+make test-race       # the same tests under the Go race detector (needs cgo: Linux / macOS / WSL)
 go test ./... -count=1
 ```
 
-Tests run against a **real Postgres**, never a mock: with `DATABASE_URL_TEST` set (the docker compose default) each
-test package gets its own `<db>_<package>` database; with it unset, an embedded PostgreSQL 16 starts automatically.
-Every test begins from the fixed seed. `go test ./internal/booking -run TestLastSeatRace -count=5 -v` re-runs the race
-tests five times.
+Tests run against a **real Postgres**, never a mock: with `DATABASE_URL_TEST` set each test package gets its own
+`<db>_<package>` database; with it unset, an embedded PostgreSQL 16 starts automatically (~15s per package, plus a
+one-off 40MB download). `make` reads `.env` and exports it, so `make verify` uses the docker compose databases. A bare
+`go test ./...` does **not** read `.env` — export `DATABASE_URL_TEST` first (`set -a; source .env; set +a`) or accept
+the embedded fallback. Every test begins from the fixed seed. `go test ./internal/booking -run TestLastSeatRace -count=5 -v`
+re-runs the race tests five times.
 
 ### Run the last-seat race demo
 
@@ -103,15 +106,20 @@ OK: exactly one confirmed, one cancelled+refunded, roster at capacity.
 
 ## Time spent
 
+About **6 hours** wall-clock, AI-assisted throughout, against the 4-hour cap. The cap was exceeded on purpose: the
+4 hours covered reading, the brief, and a working, tested build; the extra 2 hours were review and write-up. The assignment asks for "what you would do next" notes if the time runs over; see that section below.
+
 | Phase | Time |
 |---|---|
-| Reading the assignment, writing the build brief, choosing Go | <Max to fill in> |
-| Schema, migrations, seed | <Max to fill in> |
-| Service layer + mock provider | <Max to fill in> |
-| Tests (incl. race tests) + demo-race | <Max to fill in> |
-| API + HTML pages | <Max to fill in> |
-| README, AI_USAGE, video guide, review | <Max to fill in> |
-| **Total** | <Max to fill in> |
+| Read the assignment, write the build brief, decide on Go | 1 h |
+| Build session with the coding agent, from empty folder to green tests and first-draft docs | 2 h |
+| Review from a fresh clone: docker compose path, `-race`, docs pass, two Makefile fixes | 2 h |
+| AI_USAGE.md in my own words, browser click-through, video recording | 1 h |
+| **Total** | **6 h** |
+
+The code itself was the smallest part: roughly one of the six hours. Most of the time went into the brief before the
+agent started and into verification after it stopped, which is where the invariants were actually proven
+(see *Verification* and `DECISIONS.md`).
 
 ## Assumptions
 
@@ -308,10 +316,12 @@ Two minutes:
 
 1. `make verify` — gofmt, `go vet`, `staticcheck`, then the suite against a real Postgres:
    ```
-   ok  	ottodot/internal/booking	16.204s
-   ok  	ottodot/internal/httpapi	14.518s
-   ok  	ottodot/internal/payments	0.510s
+   ok  	ottodot/internal/booking	2.884s
+   ok  	ottodot/internal/httpapi	2.340s
+   ok  	ottodot/internal/payments	1.271s
    ```
+   (against docker compose; the embedded fallback adds ~14s of Postgres start-up per package.
+   `make test-race` is green as well.)
    The test names read as the spec (`go test ./... -v`):
    ```
    01 creates a pending_payment booking for an eligible student and class
