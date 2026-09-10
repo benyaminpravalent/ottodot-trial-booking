@@ -1,0 +1,39 @@
+{{define "title"}}Pay for booking{{end}}
+{{define "content"}}
+<h1>Payment</h1>
+
+<section class="card">
+  <p><strong>{{.Detail.ClassTitle}}</strong><br>
+     {{datetime .Detail.StartsAt}} · for <strong>{{.Detail.StudentName}}</strong> (booked by {{.Detail.ParentName}})</p>
+  <p class="amount">Amount due: <strong>{{money .Detail.AmountCents .Detail.Currency}}</strong></p>
+  <p class="muted">Your seat is <em>not</em> reserved until payment succeeds. If the last seat goes to someone else
+     while you pay, you will be refunded automatically and told so.</p>
+</section>
+
+{{if .Errors}}
+<div class="alert error">
+  <ul>{{range .Errors}}<li>{{.}}</li>{{end}}</ul>
+</div>
+{{end}}
+
+<form method="post" action="/bookings/{{.Detail.Booking.ID}}/pay" class="card">
+  <input type="hidden" name="parent_id" value="{{.ParentID}}">
+  <label>Card number <input name="number" value="{{.Card.Number}}" inputmode="numeric" autocomplete="off" required></label>
+  <div class="row">
+    <label>Exp. month <input name="exp_month" value="{{.Card.ExpMonth}}" size="2" required></label>
+    <label>Exp. year <input name="exp_year" value="{{.Card.ExpYear}}" size="4" required></label>
+    <label>CVC <input name="cvc" value="{{.Card.CVC}}" size="4" required></label>
+  </div>
+  <button type="submit" class="primary">Pay {{money .Detail.AmountCents .Detail.Currency}}</button>
+</form>
+
+<section class="card muted">
+  <h3>Test cards (mock provider)</h3>
+  <table>
+    <tbody>
+    {{range $num, $outcome := .Cards}}<tr><td><code>{{$num}}</code></td><td>{{$outcome}}</td></tr>{{end}}
+    <tr><td><em>anything else</em></td><td>fails: invalid_card</td></tr>
+    </tbody>
+  </table>
+</section>
+{{end}}

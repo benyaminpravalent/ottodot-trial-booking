@@ -1,0 +1,21 @@
+{{define "title"}}Admin · classes{{end}}
+{{define "content"}}
+<h1>Trial classes</h1>
+<p class="muted">Confirmed counts are derived live from bookings with <code>status = 'confirmed'</code>. There is no stored seat counter.</p>
+<table>
+  <thead><tr><th>Class</th><th>Subject</th><th>Teacher</th><th>Starts</th><th>Confirmed / capacity</th><th>Seats left</th><th></th></tr></thead>
+  <tbody>
+  {{range .}}
+    <tr class="{{if .IsFull}}full{{end}}">
+      <td><a href="/admin/classes/{{.ID}}">{{.Title}}</a></td>
+      <td>{{.Subject}}</td>
+      <td>{{.TeacherName}}</td>
+      <td>{{datetime .StartsAt}}</td>
+      <td>{{.ConfirmedCount}} / {{.Capacity}}</td>
+      <td>{{if .IsFull}}<span class="badge full">Full</span>{{else}}{{.SeatsLeft}}{{end}}</td>
+      <td><a href="/admin/classes/{{.ID}}">Roster</a> · <a href="/api/trial-classes/{{.ID}}/roster">JSON</a></td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}

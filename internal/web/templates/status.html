@@ -1,0 +1,52 @@
+{{define "title"}}Booking status{{end}}
+{{define "content"}}
+<h1>Booking status</h1>
+
+{{if .Error}}<div class="alert error">{{.Error}}</div>{{end}}
+
+<section class="card status status-{{.Detail.Booking.Status}}">
+  <div class="status-label">{{label .Detail.Booking.Status}}</div>
+  <p class="message">{{.Detail.Message}}</p>
+  {{if .Detail.Booking.StatusReason}}<p class="muted">Reason code: <code>{{.Detail.Booking.StatusReason}}</code></p>{{end}}
+</section>
+
+<section class="card">
+  <dl>
+    <dt>Class</dt><dd>{{.Detail.ClassTitle}} · {{datetime .Detail.StartsAt}}</dd>
+    <dt>Child</dt><dd>{{.Detail.StudentName}}</dd>
+    <dt>Parent</dt><dd>{{.Detail.ParentName}}</dd>
+    <dt>Amount</dt><dd>{{money .Detail.AmountCents .Detail.Currency}}</dd>
+    <dt>Booking ID</dt><dd><code>{{.Detail.Booking.ID}}</code></dd>
+    {{if .Detail.Booking.ConfirmedAt}}<dt>Confirmed at</dt><dd>{{datetime .Detail.Booking.ConfirmedAt}}</dd>{{end}}
+  </dl>
+</section>
+
+<section class="card">
+  <h2>Payment history</h2>
+  {{if .Detail.Attempts}}
+  <table>
+    <thead><tr><th>When</th><th>Amount</th><th>Status</th><th>Reference</th><th>Detail</th></tr></thead>
+    <tbody>
+    {{range .Detail.Attempts}}
+      <tr>
+        <td>{{datetime .CreatedAt}}</td>
+        <td>{{money .AmountCents .Currency}}</td>
+        <td><span class="badge {{.Status}}">{{.Status}}</span></td>
+        <td><code>{{.ProviderRef}}</code></td>
+        <td>{{if .FailureCode}}<code>{{.FailureCode}}</code>{{end}}{{if .RefundRef}}refund <code>{{.RefundRef}}</code>{{end}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No payment attempts yet.</p>
+  {{end}}
+</section>
+
+<p class="actions">
+  {{if eq .Detail.Booking.Status "pending_payment"}}<a class="button primary" href="/bookings/{{.Detail.Booking.ID}}/pay">Continue to payment</a>{{end}}
+  <a class="button" href="/?parent={{.Detail.Booking.ParentID}}&student={{.Detail.Booking.StudentID}}">Book another trial</a>
+  <a class="button" href="/admin/classes/{{.Detail.Booking.TrialClassID}}">View class roster</a>
+  <a href="/api/bookings/{{.Detail.Booking.ID}}">JSON</a>
+</p>
+{{end}}

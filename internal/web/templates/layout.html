@@ -1,0 +1,26 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{template "title" .}} · Ottodot Trial Booking</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">Ottodot Trial Booking</a>
+    <nav>
+      <a href="/">Book a trial</a>
+      <a href="/admin/classes">Admin · classes</a>
+      <a href="/api/trial-classes">API</a>
+    </nav>
+  </header>
+  <main>
+    {{template "content" .}}
+  </main>
+  <footer>
+    Demo build: no login, mock payments. Test cards — <code>4242 4242 4242 4242</code> succeeds ·
+    <code>4000 0000 0000 0002</code> card_declined · <code>4000 0000 0000 9995</code> insufficient_funds.
+  </footer>
+</body>
+</html>{{end}}

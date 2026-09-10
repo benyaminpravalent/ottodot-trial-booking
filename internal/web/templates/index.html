@@ -1,0 +1,60 @@
+{{define "title"}}Book a trial{{end}}
+{{define "content"}}
+<h1>Book a trial class</h1>
+
+<section class="card">
+  <h2>1. Who is booking? <small>(simulated login)</small></h2>
+  <form method="get" action="/" class="inline">
+    <label for="parent">Parent</label>
+    <select id="parent" name="parent">
+      <option value="">— choose a parent —</option>
+      {{range .Parents}}
+        <option value="{{.ID}}" {{if and $.Parent (eq $.Parent.ID .ID)}}selected{{end}}>{{.Name}} ({{.Email}})</option>
+      {{end}}
+    </select>
+    <button type="submit">Continue</button>
+  </form>
+</section>
+
+{{if .Parent}}
+{{if .Error}}<div class="alert error">{{.Error}}</div>{{end}}
+<form method="post" action="/bookings">
+  <input type="hidden" name="parent_id" value="{{.Parent.ID}}">
+
+  <section class="card">
+    <h2>2. Which child?</h2>
+    {{range .Students}}
+      <label class="choice">
+        <input type="radio" name="student_id" value="{{.ID}}" required {{if eq $.SelectedStudent .ID.String}}checked{{end}}>
+        <strong>{{.Name}}</strong> · Grade {{.Grade}}
+      </label>
+    {{else}}
+      <p>This parent has no children on file.</p>
+    {{end}}
+  </section>
+
+  <section class="card">
+    <h2>3. Which trial class?</h2>
+    <p class="muted">Seats shown are live counts of confirmed bookings. A full class is shown but cannot be picked;
+      the final check happens when you pay.</p>
+    <table>
+      <thead><tr><th></th><th>Class</th><th>Teacher</th><th>Starts</th><th>Seats left</th><th>Price</th></tr></thead>
+      <tbody>
+      {{range .Classes}}
+        <tr class="{{if .IsFull}}full{{end}}">
+          <td><input type="radio" name="trial_class_id" value="{{.ID}}" required {{if .IsFull}}disabled{{end}}></td>
+          <td>{{.Title}}</td>
+          <td>{{.TeacherName}}</td>
+          <td>{{datetime .StartsAt}}</td>
+          <td>{{if .IsFull}}<span class="badge full">Full</span>{{else}}{{.SeatsLeft}} of {{.Capacity}}{{end}}</td>
+          <td>{{money .PriceCents .Currency}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </section>
+
+  <button type="submit" class="primary">Continue to payment</button>
+</form>
+{{end}}
+{{end}}

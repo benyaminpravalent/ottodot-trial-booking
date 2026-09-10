@@ -1,0 +1,42 @@
+{{define "title"}}Roster · {{.Class.Title}}{{end}}
+{{define "content"}}
+<p><a href="/admin/classes">← All classes</a></p>
+<h1>{{.Class.Title}}</h1>
+<p>{{.Class.TeacherName}} · {{datetime .Class.StartsAt}} ·
+   <strong>{{.ConfirmedCount}} / {{.Capacity}} confirmed</strong> ·
+   {{if .Class.IsFull}}<span class="badge full">Full</span>{{else}}{{.SeatsLeft}} seat(s) left{{end}} ·
+   <a href="/api/trial-classes/{{.Class.ID}}/roster">JSON</a></p>
+
+<section class="card">
+  <h2>Confirmed students</h2>
+  {{if .Confirmed}}
+  <table>
+    <thead><tr><th>#</th><th>Student</th><th>Grade</th><th>Parent</th><th>Email</th><th>Confirmed at</th></tr></thead>
+    <tbody>
+    {{range $i, $e := .Confirmed}}
+      <tr>
+        <td>{{$i}}</td>
+        <td><strong>{{$e.StudentName}}</strong></td>
+        <td>{{$e.Grade}}</td>
+        <td>{{$e.ParentName}}</td>
+        <td>{{$e.ParentEmail}}</td>
+        <td>{{datetime $e.ConfirmedAt}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Nobody is confirmed for this class yet.</p>
+  {{end}}
+</section>
+
+<section class="card muted">
+  <h3>All bookings for this class, by status</h3>
+  <p>Only <code>confirmed</code> rows count towards the roster and the seat limit.</p>
+  <table>
+    <tbody>
+    {{range $status, $n := .Breakdown}}<tr><td><span class="badge {{$status}}">{{label $status}}</span></td><td>{{$n}}</td></tr>{{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}

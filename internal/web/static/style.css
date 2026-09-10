@@ -1,0 +1,45 @@
+/* One small stylesheet. Function over form: this is a backend assessment. */
+:root { --ink: #1c1e21; --muted: #6b7280; --line: #e5e7eb; --bg: #f7f7f8; --card: #fff;
+        --ok: #157347; --warn: #b45309; --bad: #b91c1c; --brand: #3b5bdb; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+header { display: flex; gap: 1.5rem; align-items: baseline; padding: .75rem 1.25rem; background: #fff; border-bottom: 1px solid var(--line); }
+header .brand { font-weight: 700; color: var(--ink); text-decoration: none; }
+header nav a { margin-right: 1rem; color: var(--brand); }
+main { max-width: 900px; margin: 0 auto; padding: 1.25rem; }
+footer { max-width: 900px; margin: 2rem auto; padding: 0 1.25rem; color: var(--muted); font-size: .85rem; }
+h1 { font-size: 1.5rem; margin: .5rem 0 1rem; }
+h2 { font-size: 1.1rem; margin: 0 0 .75rem; }
+h2 small { color: var(--muted); font-weight: 400; font-size: .85rem; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.muted { color: var(--muted); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: .85rem; }
+tr.full td { color: var(--muted); }
+label.choice { display: block; padding: .35rem 0; }
+form.inline { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.row { display: flex; gap: 1rem; flex-wrap: wrap; }
+label { display: block; margin: .5rem 0; }
+input, select { font: inherit; padding: .4rem .5rem; border: 1px solid #cbd5e1; border-radius: 6px; }
+input[name="number"] { width: 100%; max-width: 20rem; letter-spacing: .05em; }
+button, .button { font: inherit; padding: .5rem .9rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; text-decoration: none; color: var(--ink); display: inline-block; }
+button.primary, .button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.alert { padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+.alert.error { background: #fef2f2; border: 1px solid #fecaca; color: var(--bad); }
+.alert ul { margin: 0; padding-left: 1.2rem; }
+.amount { font-size: 1.15rem; }
+.badge { display: inline-block; padding: .1rem .5rem; border-radius: 999px; font-size: .8rem; font-weight: 600; background: #eef2ff; color: var(--brand); }
+.badge.full, .badge.failed, .badge.payment_failed, .badge.cancelled { background: #fef2f2; color: var(--bad); }
+.badge.succeeded, .badge.confirmed { background: #ecfdf5; color: var(--ok); }
+.badge.refunded, .badge.pending_payment { background: #fffbeb; color: var(--warn); }
+.status .status-label { font-size: 1.6rem; font-weight: 700; }
+.status .message { font-size: 1.05rem; margin: .5rem 0 0; }
+.status-confirmed { border-left: 6px solid var(--ok); }
+.status-pending_payment { border-left: 6px solid var(--warn); }
+.status-payment_failed, .status-cancelled { border-left: 6px solid var(--bad); }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; margin: 0; }
+dt { color: var(--muted); }
+dd { margin: 0; }
+code { font-size: .9em; background: #f1f5f9; padding: .05rem .3rem; border-radius: 4px; }
