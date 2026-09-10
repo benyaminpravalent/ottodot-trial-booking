@@ -1,0 +1,3 @@
+# Consistent LF endings across Windows/macOS/Linux checkouts
+* text=auto eol=lf
+*.pdf binary
