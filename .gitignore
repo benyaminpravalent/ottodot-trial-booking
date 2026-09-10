@@ -1,0 +1,25 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# build & tooling
+/bin/
+/tmp/
+*.exe
+*.test
+*.out
+coverage.*
+
+# embedded postgres runtime (dev fallback when Docker is unavailable)
+/.devdb/
+
+# editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# local run logs
+.server.log
+.devdb.log
