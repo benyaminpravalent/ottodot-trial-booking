@@ -7,7 +7,7 @@ The smallest working slice of a trial-class booking system for Ottodot: a parent
 level — no duplicate confirmed bookings, never more than 4 confirmed per class, a failed payment never reaches the
 roster, and the last-seat race ends with exactly one confirmed booking. It is one Go binary talking to PostgreSQL 16.
 
-> 🎥 Walkthrough video: <LINK — to be added>
+> 🎥 A video walkthrough (running the solution, the last-seat race, tradeoffs) is submitted separately alongside this repository.
 
 ## How to run
 
